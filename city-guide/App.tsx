@@ -1,9 +1,9 @@
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { StatusBar } from "expo-status-bar";
-import LoginScreen from "./screens/LoginScreen";
-import SightDetailsScreen from "./screens/SightDetailsScreen";
-import SightsScreen from "./screens/SightsScreen";
+import LoginScreen from "../screens/LoginScreen";
+import SightDetailsScreen from "../screens/SightDetailsScreen";
+import SightsScreen from "../screens/SightsScreen";
 
 export type RootStackParamList = {
   Login: undefined;

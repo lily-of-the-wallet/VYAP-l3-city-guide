@@ -1,5 +1,7 @@
+import { useState } from "react";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import {
+  FlatList,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -8,112 +10,134 @@ import {
   View,
 } from "react-native";
 import SightCard from "../components/SightCard";
+import { sights, type Sight } from "../data/sights";
 import type { RootStackParamList } from "../App";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Sights">;
+type FilterId = "all" | Sight["categoryId"] | "favorites";
 
-const sights = [
-  {
-    id: "town-hall-1",
-    title: "Старая ратуша",
-    category: "Архитектура · исторический центр",
-  },
-  {
-    id: "town-hall-2",
-    title: "Старая ратуша",
-    category: "Архитектура · исторический центр",
-  },
-  {
-    id: "town-hall-3",
-    title: "Старая ратуша",
-    category: "Архитектура · исторический центр",
-  },
-  {
-    id: "town-hall-4",
-    title: "Старая ратуша",
-    category: "Архитектура · исторический центр",
-  },
-  {
-    id: "town-hall-5",
-    title: "Старая ратуша",
-    category: "Архитектура · исторический центр",
-  },
+const filters: { id: FilterId; title: string }[] = [
+  { id: "all", title: "Все" },
+  { id: "architecture", title: "Архитектура" },
+  { id: "museums", title: "Музеи" },
+  { id: "parks", title: "Парки" },
+  { id: "favorites", title: "Избранное" },
 ];
 
-const categories = [
-  { id: "all", title: "Все", isActive: true },
-  { id: "architecture", title: "Архитектура", isActive: false },
-  { id: "museums", title: "Музеи", isActive: false },
-  { id: "parks", title: "Парки", isActive: false },
-];
-
-// формирует список карточек. использует локальный массив объектов
+// управляет списком достопримечательностей и избранными объектами
 export default function SightsScreen({ navigation }: Props) {
+  const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
+  const [activeFilter, setActiveFilter] = useState<FilterId>("all");
+
+  let visibleSights = sights;
+
+  if (activeFilter === "favorites") {
+    visibleSights = sights.filter((sight) => favoriteIds.includes(sight.id));
+  } else if (activeFilter !== "all") {
+    visibleSights = sights.filter(
+        (sight) => sight.categoryId === activeFilter
+    );
+  }
+
+  function toggleFavorite(id: string) {
+    setFavoriteIds((prev) =>
+        prev.includes(id)
+            ? prev.filter((favoriteId) => favoriteId !== id)
+            : [...prev, id]
+    );
+  }
+
+  function selectFilter(filter: FilterId) {
+    setActiveFilter((prev) => (prev === filter ? prev : filter));
+  }
+
   return (
-    <View style={styles.screen}>
-      <ScrollView
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-      >
-        <Pressable
-          accessibilityRole="link"
-          onPress={() => navigation.goBack()}
-          style={styles.backLink}
-        >
-          <Text style={styles.backLinkText}>← Назад ко входу</Text>
-        </Pressable>
+      <View style={styles.screen}>
+        <View style={styles.header}>
+          <Pressable
+              accessibilityRole="link"
+              onPress={() => navigation.goBack()}
+              style={styles.backLink}
+          >
+            <Text style={styles.backLinkText}>← Назад ко входу</Text>
+          </Pressable>
 
-        <Text style={styles.heading}>Достопримечательности</Text>
-        <Text style={styles.description}>
-          Выберите место для следующей прогулки
-        </Text>
+          <Text style={styles.heading}>Достопримечательности</Text>
+          <Text style={styles.description}>
+            {activeFilter === "favorites"
+                ? "Сохранённые места для будущих прогулок"
+                : "Выберите место для следующей прогулки"}
+          </Text>
 
-        <View style={styles.searchField}>
-          <Text style={styles.searchIcon}>⌕</Text>
-          <TextInput
-            editable={false}
-            placeholder="Найти место"
-            placeholderTextColor="#5A6472"
-            style={styles.searchInput}
-          />
-        </View>
-
-        <View style={styles.categories}>
-          {categories.map((category) => (
-            <Pressable
-              key={category.id}
-              style={[
-                styles.category,
-                category.isActive && styles.categoryActive,
-              ]}
-            >
-              <Text
-                numberOfLines={1}
-                style={[
-                  styles.categoryText,
-                  category.isActive && styles.categoryTextActive,
-                ]}
-              >
-                {category.title}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-
-        <View style={styles.list}>
-          {sights.map((sight) => (
-            <SightCard
-              key={sight.id}
-              {...sight}
-              image={require("../assets/town-hall.png")}
-              onPress={(sightId) =>
-                navigation.navigate("SightDetails", { sightId })
-              }
+          <View style={styles.searchField}>
+            <Text style={styles.searchIcon}>⌕</Text>
+            <TextInput
+                editable={false}
+                placeholder="Найти место"
+                placeholderTextColor="#5A6472"
+                style={styles.searchInput}
             />
-          ))}
+          </View>
+
+          <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.categories}
+          >
+            {filters.map((filter) => (
+                <Pressable
+                    key={filter.id}
+                    accessibilityRole="button"
+                    onPress={() => selectFilter(filter.id)}
+                    style={[
+                      styles.category,
+                      activeFilter === filter.id && styles.categoryActive,
+                    ]}
+                >
+                  <Text
+                      numberOfLines={1}
+                      style={[
+                        styles.categoryText,
+                        activeFilter === filter.id && styles.categoryTextActive,
+                      ]}
+                  >
+                    {filter.title}
+                  </Text>
+                </Pressable>
+            ))}
+          </ScrollView>
+
+          {favoriteIds.length > 0 && (
+              <Text style={styles.favoriteCount}>
+                В избранном: {favoriteIds.length}
+              </Text>
+          )}
         </View>
-      </ScrollView>
-    </View>
+
+        <FlatList
+            data={visibleSights}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+                <SightCard
+                    {...item}
+                    isFavorite={favoriteIds.includes(item.id)}
+                    onToggleFavorite={() => toggleFavorite(item.id)}
+                    onPress={(sightId) =>
+                        navigation.navigate("SightDetails", { sightId })
+                    }
+                />
+            )}
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
+            ListEmptyComponent={
+              <Text style={styles.emptyText}>
+                Пока нет избранных мест. Нажмите ☆ на карточке, чтобы сохранить
+                достопримечательность
+              </Text>
+            }
+            ItemSeparatorComponent={() => <View style={styles.separator} />}
+        />
+      </View>
   );
 }
 
@@ -122,10 +146,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#F2F4F8",
   },
-  content: {
+  header: {
     paddingHorizontal: 24,
     paddingTop: 24,
-    paddingBottom: 24,
   },
   backLink: {
     alignSelf: "flex-start",
@@ -170,7 +193,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     height: "100%",
-    marginLeft: 10,
+    marginLeft: 8,
     padding: 0,
     color: "#14181F",
     fontSize: 14,
@@ -179,8 +202,8 @@ const styles = StyleSheet.create({
   },
   categories: {
     flexDirection: "row",
-    justifyContent: "space-between",
     marginTop: 16,
+    gap: 8,
   },
   category: {
     minHeight: 32,
@@ -202,8 +225,26 @@ const styles = StyleSheet.create({
   categoryTextActive: {
     color: "#FFFFFF",
   },
-  list: {
-    gap: 16,
+  favoriteCount: {
     marginTop: 16,
+    color: "#5A6472",
+    fontSize: 12,
+    fontWeight: "500",
+    lineHeight: 16,
+  },
+  listContent: {
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    paddingBottom: 24,
+  },
+  separator: {
+    height: 16,
+  },
+  emptyText: {
+    color: "#5A6472",
+    fontSize: 14,
+    fontWeight: "400",
+    lineHeight: 20,
+    textAlign: "center",
   },
 });
