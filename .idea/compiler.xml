@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CompilerConfiguration">
+    <bytecodeTargetLevel>
+      <module name="expo-gradle-plugin" target="17" />
+      <module name="expo-gradle-plugin.expo-autolinking-plugin" target="11" />
+      <module name="expo-gradle-plugin.expo-autolinking-plugin-shared" target="11" />
+      <module name="expo-gradle-plugin.expo-autolinking-plugin-shared.main" target="11" />
+      <module name="expo-gradle-plugin.expo-autolinking-plugin-shared.test" target="11" />
+      <module name="expo-gradle-plugin.expo-autolinking-plugin.main" target="11" />
+      <module name="expo-gradle-plugin.expo-autolinking-plugin.test" target="11" />
+      <module name="expo-gradle-plugin.expo-autolinking-settings-plugin" target="11" />
+      <module name="expo-gradle-plugin.expo-autolinking-settings-plugin.main" target="11" />
+      <module name="expo-gradle-plugin.expo-autolinking-settings-plugin.test" target="11" />
+      <module name="expo-gradle-plugin.expo-max-sdk-override-plugin" target="11" />
+      <module name="expo-gradle-plugin.expo-max-sdk-override-plugin.main" target="11" />
+      <module name="expo-gradle-plugin.expo-max-sdk-override-plugin.test" target="11" />
+      <module name="expo-gradle-plugin.main" target="17" />
+      <module name="expo-gradle-plugin.test" target="17" />
+    </bytecodeTargetLevel>
+  </component>
+</project>
