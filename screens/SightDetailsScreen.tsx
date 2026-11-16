@@ -1,14 +1,22 @@
 import { useState } from "react";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import {
+  ActivityIndicator,
   Image,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
-import { sights } from "../data/sights";
+import { imageUrl, postJson } from "../api/client";
+import type { Review, Sight } from "../api/types";
+import Button from "../components/Button";
+import ErrorView from "../components/ErrorView";
+import FormField from "../components/FormField";
+import useFetch from "../hooks/useFetch";
+import useForm from "../hooks/useForm";
 import { useAuth } from "../context/AuthContext";
 import type { RootStackParamList } from "../App";
 
@@ -18,8 +26,25 @@ const MAX_VISIT_HOURS = 8;
 export default function SightDetailsScreen({ navigation, route }: Props) {
   const { user } = useAuth();
   const [visitHours, setVisitHours] = useState(1);
-  const sight =
-      sights.find((item) => item.id === route.params.sightId) ?? sights[0];
+  const { sightId } = route.params;
+  const { data: sight, loading, error, reload } = useFetch<Sight>(`/places/${sightId}`);
+  const [submitting, setSubmitting] = useState(false);
+  const [result, setResult] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const author = user ?? "гость";
+  const { values, errors, handleChange, handleSubmit, resetForm } = useForm(
+      { rating: "", text: "" },
+      (form) => {
+        const next: Partial<Record<"rating" | "text", string>> = {};
+        if (!/^[1-5]$/.test(form.rating.trim())) {
+          next.rating = "Введите целую оценку от 1 до 5";
+        }
+        if (form.text.trim().length < 3 || form.text.trim().length > 500) {
+          next.text = "Отзыв должен содержать от 3 до 500 символов";
+        }
+        return next;
+      }
+  );
   const visitMinutes = visitHours * 60;
 
   function decreaseVisitHours() {
@@ -30,6 +55,55 @@ export default function SightDetailsScreen({ navigation, route }: Props) {
     setVisitHours((prev) => Math.min(MAX_VISIT_HOURS, prev + 1));
   }
 
+  function submitReview() {
+    handleSubmit(async (validValues) => {
+      if (!sight || sight.id !== sightId) {
+        setSubmitError("Выберите существующее место");
+        return;
+      }
+
+      if (!author.trim() || author.trim().length > 100) {
+        setSubmitError("Укажите имя автора длиной до 100 символов");
+        return;
+      }
+
+      setSubmitting(true);
+      setResult(null);
+      setSubmitError(null);
+
+      try {
+        const review = await postJson<Review>("/reviews", {
+          placeId: sightId,
+          rating: Number(validValues.rating.trim()),
+          text: validValues.text.trim(),
+          author: author.trim(),
+        });
+
+        setResult(`Отзыв № ${review.id} опубликован`);
+        resetForm();
+        reload();
+      } catch (err) {
+        setSubmitError(err instanceof Error ? err.message : "Не удалось отправить отзыв");
+      } finally {
+        setSubmitting(false);
+      }
+    });
+  }
+
+  if (loading) {
+    return <ActivityIndicator size="large" color="#4C6FFF" style={{ marginTop: 48 }} />;
+  }
+  if (error || !sight) {
+    return (
+        <View style={styles.screen}>
+          <Pressable accessibilityRole="button" onPress={() => navigation.goBack()} style={styles.errorBack}>
+            <Text style={styles.backButtonText}>← Назад</Text>
+          </Pressable>
+          <ErrorView message={error ?? "Место не найдено"} onRetry={reload} />
+        </View>
+    );
+  }
+
   return (
       <ScrollView
           showsVerticalScrollIndicator={false}
@@ -37,7 +111,7 @@ export default function SightDetailsScreen({ navigation, route }: Props) {
       >
         <View style={styles.hero}>
           <Image
-              source={sight.image}
+              source={{ uri: imageUrl(sight.image) }}
               resizeMode="cover"
               style={styles.heroImage}
           />
@@ -58,6 +132,9 @@ export default function SightDetailsScreen({ navigation, route }: Props) {
         <View style={styles.content}>
 
           <Text style={styles.description}>{sight.description}</Text>
+          <Text style={styles.rating}>
+            {sight.rating === null ? "Пока нет оценок" : `★ ${sight.rating.toFixed(1)} · отзывов: ${sight.reviewCount}`}
+          </Text>
 
           <View style={styles.infoBlock}>
             <Text style={styles.label}>Адрес</Text>
@@ -118,6 +195,36 @@ export default function SightDetailsScreen({ navigation, route }: Props) {
             </Text>
           </View>
 
+          <View style={styles.reviewBlock}>
+            <Text style={styles.reviewTitle}>Поделитесь впечатлением</Text>
+            <Text style={styles.reviewHint}>Ваша оценка поможет другим выбрать место</Text>
+            <FormField label="Оценка от 1 до 5" error={errors.rating}>
+              <TextInput
+                  accessibilityLabel="Оценка"
+                  keyboardType="number-pad"
+                  placeholder="Например, 5"
+                  value={values.rating}
+                  onChangeText={(text) => handleChange("rating", text)}
+                  style={styles.input}
+              />
+            </FormField>
+            <FormField label="Ваш отзыв" error={errors.text}>
+              <TextInput
+                  accessibilityLabel="Ваш отзыв"
+                  multiline
+                  placeholder="Что вам запомнилось?"
+                  value={values.text}
+                  onChangeText={(text) => handleChange("text", text)}
+                  style={[styles.input, styles.reviewInput]}
+              />
+            </FormField>
+            <Button onPress={submitReview} disabled={submitting}>
+              {submitting ? "Отправляем…" : "Оставить отзыв"}
+            </Button>
+            {result ? <Text style={styles.success}>{result}</Text> : null}
+            {submitError ? <Text style={styles.submitError}>{submitError}</Text> : null}
+          </View>
+
           <View style={styles.accountContent}>
             <Text style={styles.accountText}>
               {user ? `Вы под именем: ${user}` : "Гостевой режим"}
@@ -132,6 +239,12 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: "#F2F4F8",
+  },
+  errorBack: {
+    alignSelf: "flex-start",
+    marginTop: 24,
+    marginLeft: 24,
+    padding: 12,
   },
   hero: {
     height: 280,
@@ -191,6 +304,33 @@ const styles = StyleSheet.create({
     fontWeight: "400",
     lineHeight: 24,
   },
+  rating: {
+    marginTop: 12,
+    color: "#A36A00",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  reviewBlock: {
+    marginTop: 24,
+    padding: 16,
+    gap: 14,
+    borderRadius: 16,
+    backgroundColor: "#FFFFFF",
+  },
+  reviewTitle: { color: "#14181F", fontSize: 18, fontWeight: "600" },
+  reviewHint: { color: "#5A6472", fontSize: 13, lineHeight: 19 },
+  input: {
+    minHeight: 48,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: "#D5DAE2",
+    borderRadius: 12,
+    color: "#14181F",
+    fontSize: 15,
+  },
+  reviewInput: { minHeight: 96, paddingTop: 12, textAlignVertical: "top" },
+  success: { color: "#27804C", fontSize: 14 },
+  submitError: { color: "#C03939", fontSize: 14 },
   accountContent: {
     backgroundColor: "#4c70ff",
     marginTop: 24,

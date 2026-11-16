@@ -8,11 +8,11 @@ import {
 } from "react-native";
 
 type SightCardProps = {
-  id: string;
+  id: number;
   title: string;
   category: string;
   image: ImageSourcePropType;
-  onPress: (id: string) => void;
+  onPress: (id: number) => void;
   isFavorite: boolean;
   onToggleFavorite: () => void;
 };

@@ -4,14 +4,16 @@ type ButtonProps = {
     children: string;
     variant?: "primary" | "secondary";
     onPress: () => void;
+    disabled?: boolean;
 };
 
-export default function Button({ children, variant = "primary", onPress }: ButtonProps) {
+export default function Button({ children, variant = "primary", onPress, disabled = false }: ButtonProps) {
     return (
         <Pressable
             accessibilityRole="button"
             onPress={onPress}
-            style={[styles.button, variant === "primary" ? styles.primary : styles.secondary]}
+            disabled={disabled}
+            style={[styles.button, variant === "primary" ? styles.primary : styles.secondary, disabled && styles.disabled]}
         >
             <Text style={variant === "primary" ? styles.primaryText : styles.secondaryText}>
                 {children}
@@ -26,6 +28,9 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
         borderRadius: 12,
+    },
+    disabled: {
+        opacity: 0.5,
     },
     primary: {
         backgroundColor: "#4C6FFF",

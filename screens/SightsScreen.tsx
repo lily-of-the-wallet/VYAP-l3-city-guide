@@ -1,17 +1,20 @@
 import { useState } from "react";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import {
+  ActivityIndicator,
   FlatList,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
+import { imageUrl } from "../api/client";
+import type { Sight } from "../api/types";
+import ErrorView from "../components/ErrorView";
+import useFetch from "../hooks/useFetch";
 import SightCard from "../components/SightCard";
 import { useAuth } from "../context/AuthContext";
-import { sights, type Sight } from "../data/sights";
 import type { RootStackParamList } from "../App";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Sights">;
@@ -28,9 +31,12 @@ const filters: { id: FilterId; title: string }[] = [
 // управляет списком достопримечательностей и избранными объектами
 export default function SightsScreen({ navigation }: Props) {
   const { user, logout } = useAuth();
-  const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
+  const [favoriteIds, setFavoriteIds] = useState<number[]>([]);
   const [activeFilter, setActiveFilter] = useState<FilterId>("all");
 
+  const category = activeFilter === "all" || activeFilter === "favorites" ? "" : activeFilter;
+  const { data, loading, error, reload } = useFetch<Sight[]>(`/places?category=${encodeURIComponent(category)}`);
+  const sights = data ?? [];
   let visibleSights = sights;
 
   if (activeFilter === "favorites") {
@@ -41,7 +47,7 @@ export default function SightsScreen({ navigation }: Props) {
     );
   }
 
-  function toggleFavorite(id: string) {
+  function toggleFavorite(id: number) {
     setFavoriteIds((prev) =>
         prev.includes(id)
             ? prev.filter((favoriteId) => favoriteId !== id)
@@ -70,22 +76,15 @@ export default function SightsScreen({ navigation }: Props) {
             </Pressable>
           </View>
 
+          <Pressable accessibilityRole="button" onPress={() => navigation.navigate("Reviews")}>
+            <Text style={styles.backLinkText}>Мои отзывы →</Text>
+          </Pressable>
           <Text style={styles.heading}>Достопримечательности</Text>
           <Text style={styles.description}>
             {activeFilter === "favorites"
                 ? "Сохранённые места для будущих прогулок"
                 : "Выберите место для следующей прогулки"}
           </Text>
-
-          <View style={styles.searchField}>
-            <Text style={styles.searchIcon}>⌕</Text>
-            <TextInput
-                editable={false}
-                placeholder="Найти место"
-                placeholderTextColor="#5A6472"
-                style={styles.searchInput}
-            />
-          </View>
 
           <ScrollView
               horizontal
@@ -122,12 +121,17 @@ export default function SightsScreen({ navigation }: Props) {
           )}
         </View>
 
-        <FlatList
+        {loading ? (
+            <ActivityIndicator size="large" color="#4C6FFF" style={{ marginTop: 32 }} />
+        ) : error ? (
+            <ErrorView message={error} onRetry={reload} />
+        ) : <FlatList
             data={visibleSights}
-            keyExtractor={(item) => item.id}
+            keyExtractor={(item) => String(item.id)}
             renderItem={({ item }) => (
                 <SightCard
                     {...item}
+                    image={{ uri: imageUrl(item.image) }}
                     isFavorite={favoriteIds.includes(item.id)}
                     onToggleFavorite={() => toggleFavorite(item.id)}
                     onPress={(sightId) =>
@@ -139,12 +143,11 @@ export default function SightsScreen({ navigation }: Props) {
             showsVerticalScrollIndicator={false}
             ListEmptyComponent={
               <Text style={styles.emptyText}>
-                Пока нет избранных мест. Нажмите ☆ на карточке, чтобы сохранить
-                достопримечательность
+                {activeFilter === "favorites" ? "Пока нет избранных мест" : "В этой категории пока нет мест"}
               </Text>
             }
             ItemSeparatorComponent={() => <View style={styles.separator} />}
-        />
+        />}
       </View>
   );
 }
@@ -189,32 +192,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "400",
     lineHeight: 16,
-  },
-  searchField: {
-    height: 46,
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 16,
-    paddingHorizontal: 16,
-    borderWidth: 1,
-    borderColor: "#D5DAE2",
-    borderRadius: 12,
-    backgroundColor: "#FFFFFF",
-  },
-  searchIcon: {
-    color: "#5A6472",
-    fontSize: 22,
-    lineHeight: 24,
-  },
-  searchInput: {
-    flex: 1,
-    height: "100%",
-    marginLeft: 8,
-    padding: 0,
-    color: "#14181F",
-    fontSize: 14,
-    fontWeight: "400",
-    lineHeight: 20,
   },
   categories: {
     flexDirection: "row",
