@@ -9,12 +9,14 @@ import {
   View,
 } from "react-native";
 import { sights } from "../data/sights";
+import { useAuth } from "../context/AuthContext";
 import type { RootStackParamList } from "../App";
 
 type Props = NativeStackScreenProps<RootStackParamList, "SightDetails">;
 const MAX_VISIT_HOURS = 8;
 
 export default function SightDetailsScreen({ navigation, route }: Props) {
+  const { user } = useAuth();
   const [visitHours, setVisitHours] = useState(1);
   const sight =
       sights.find((item) => item.id === route.params.sightId) ?? sights[0];
@@ -54,6 +56,7 @@ export default function SightDetailsScreen({ navigation, route }: Props) {
         </View>
 
         <View style={styles.content}>
+
           <Text style={styles.description}>{sight.description}</Text>
 
           <View style={styles.infoBlock}>
@@ -112,6 +115,12 @@ export default function SightDetailsScreen({ navigation, route }: Props) {
             </View>
             <Text style={styles.visitSummary}>
               На посещение запланировано: {visitMinutes} мин.
+            </Text>
+          </View>
+
+          <View style={styles.accountContent}>
+            <Text style={styles.accountText}>
+              {user ? `Вы под именем: ${user}` : "Гостевой режим"}
             </Text>
           </View>
         </View>
@@ -181,6 +190,20 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "400",
     lineHeight: 24,
+  },
+  accountContent: {
+    backgroundColor: "#4c70ff",
+    marginTop: 24,
+    marginBottom: 16,
+    borderRadius: 8,
+    padding: 8,
+  },
+  accountText: {
+    width: "100%",
+    color: "#fff",
+    textAlign: "center",
+    fontSize: 12,
+    lineHeight: 16,
   },
   infoBlock: {
     marginTop: 16,

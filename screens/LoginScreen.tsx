@@ -1,51 +1,95 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import Button from "../components/Button";
+import FormField from "../components/FormField";
+import { useAuth } from "../context/AuthContext";
+import useForm from "../hooks/useForm";
 import type { RootStackParamList } from "../App";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Login">;
 
+type LoginValues = { email: string; password: string };
+
+function validateLogin(values: LoginValues) {
+  const errors: Partial<Record<keyof LoginValues, string>> = {};
+
+  if (!values.email.trim()) {
+    errors.email = "Введите e-mail";
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim())) {
+    errors.email = "Введите корректный e-mail";
+  }
+
+  if (!values.password) {
+    errors.password = "Введите пароль";
+  } else if (values.password.length < 8 || !/[a-zA-z]/.test(values.password)) {
+    errors.password = "Пароль должен содержать не менее 8 символов и хотя бы одну цифру";
+  }
+
+  return errors;
+}
+
 export default function LoginScreen({ navigation }: Props) {
-  const openSights = () => navigation.navigate("Sights");
+  const { login, logout } = useAuth();
+  const { values, errors, handleChange, handleSubmit, resetForm } = useForm<LoginValues>(
+      { email: "", password: "" },
+      validateLogin
+  );
+
+  function submitLogin() {
+    handleSubmit((validValues) => {
+      login(validValues.email.trim());
+      resetForm();
+      navigation.navigate("Sights");
+    });
+  }
+
+  function continueAsGuest() {
+    logout();
+    resetForm();
+    navigation.navigate("Sights");
+  }
 
   return (
-    <View style={styles.screen}>
-      <View style={styles.content}>
-        <View style={styles.logo}>
-          <Text style={styles.logoLetter}>G</Text>
+      <ScrollView style={styles.screen} contentContainerStyle={styles.scrollContent}>
+        <View style={styles.content}>
+          <View style={styles.logo}>
+            <Text style={styles.logoLetter}>G</Text>
+          </View>
+          <Text style={styles.heading}>Откройте город</Text>
+          <Text style={styles.description}>
+            Ваш спокойный гид по интересным местам и прогулкам.
+          </Text>
+          <View style={styles.form}>
+            <FormField label="E-mail" error={errors.email}>
+              <TextInput
+                  accessibilityLabel="E-mail"
+                  placeholder="E-mail"
+                  placeholderTextColor="#5A6472"
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                  value={values.email}
+                  onChangeText={(text) => handleChange("email", text)}
+                  style={styles.input}
+              />
+            </FormField>
+            <FormField label="Пароль" error={errors.password}>
+              <TextInput
+                  accessibilityLabel="Пароль"
+                  placeholder="Пароль"
+                  placeholderTextColor="#5A6472"
+                  secureTextEntry
+                  value={values.password}
+                  onChangeText={(text) => handleChange("password", text)}
+                  style={styles.input}
+              />
+            </FormField>
+            <Button onPress={submitLogin}>Войти</Button>
+            <Button variant="secondary" onPress={continueAsGuest}>
+              Продолжить как гость
+            </Button>
+          </View>
         </View>
-        <Text style={styles.heading}>Откройте город</Text>
-        <Text style={styles.description}>
-          Ваш спокойный гид по интересным местам и прогулкам.
-        </Text>
-        <View style={styles.form}>
-          <TextInput
-            placeholder="E-mail"
-            placeholderTextColor="#5A6472"
-            style={styles.input}
-          />
-          <TextInput
-            placeholder="Пароль"
-            placeholderTextColor="#5A6472"
-            secureTextEntry
-            style={styles.input}
-          />
-          <Pressable
-            accessibilityRole="button"
-            onPress={openSights}
-            style={styles.loginButton}
-          >
-            <Text style={styles.loginButtonText}>Войти</Text>
-          </Pressable>
-          <Pressable
-            accessibilityRole="link"
-            onPress={openSights}
-            style={styles.guestLink}
-          >
-            <Text style={styles.guestLinkText}>Продолжить как гость</Text>
-          </Pressable>
-        </View>
-      </View>
-    </View>
+      </ScrollView>
   );
 }
 
@@ -53,6 +97,10 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: "#F2F4F8",
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 32,
   },
   content: {
     flex: 1,
@@ -74,7 +122,7 @@ const styles = StyleSheet.create({
     lineHeight: 28,
   },
   heading: {
-    marginTop: 40,
+    marginTop: 32,
     color: "#14181F",
     fontSize: 28,
     fontWeight: "700",
@@ -88,7 +136,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   form: {
-    marginTop: 64,
+    marginTop: 32,
     paddingHorizontal: 16,
     paddingVertical: 24,
     gap: 16,
@@ -105,29 +153,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "400",
     lineHeight: 24,
-  },
-  loginButton: {
-    height: 56,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 12,
-    backgroundColor: "#4C6FFF",
-  },
-  loginButtonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "600",
-    lineHeight: 24,
-  },
-  guestLink: {
-    height: 20,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  guestLinkText: {
-    color: "#4C6FFF",
-    fontSize: 14,
-    fontWeight: "400",
-    lineHeight: 20,
   },
 });

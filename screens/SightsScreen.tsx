@@ -10,6 +10,7 @@ import {
   View,
 } from "react-native";
 import SightCard from "../components/SightCard";
+import { useAuth } from "../context/AuthContext";
 import { sights, type Sight } from "../data/sights";
 import type { RootStackParamList } from "../App";
 
@@ -26,6 +27,7 @@ const filters: { id: FilterId; title: string }[] = [
 
 // управляет списком достопримечательностей и избранными объектами
 export default function SightsScreen({ navigation }: Props) {
+  const { user, logout } = useAuth();
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
   const [activeFilter, setActiveFilter] = useState<FilterId>("all");
 
@@ -51,16 +53,22 @@ export default function SightsScreen({ navigation }: Props) {
     setActiveFilter((prev) => (prev === filter ? prev : filter));
   }
 
+  function returnToLogin() {
+    logout();
+    navigation.goBack();
+  }
+
   return (
       <View style={styles.screen}>
         <View style={styles.header}>
-          <Pressable
-              accessibilityRole="link"
-              onPress={() => navigation.goBack()}
-              style={styles.backLink}
-          >
-            <Text style={styles.backLinkText}>← Назад ко входу</Text>
-          </Pressable>
+          <View style={styles.accountRow}>
+            <Text style={styles.accountText} numberOfLines={1}>
+              {user ? `Вы вошли: ${user}` : "Гостевой режим"}
+            </Text>
+            <Pressable accessibilityRole="button" onPress={returnToLogin}>
+              <Text style={styles.backLinkText}>{user ? "Выйти" : "Ко входу"}</Text>
+            </Pressable>
+          </View>
 
           <Text style={styles.heading}>Достопримечательности</Text>
           <Text style={styles.description}>
@@ -150,9 +158,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 24,
   },
-  backLink: {
-    alignSelf: "flex-start",
-    height: 16,
+  accountRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  accountText: {
+    flex: 1,
+    color: "#5A6472",
+    fontSize: 14,
+    lineHeight: 20,
   },
   backLinkText: {
     color: "#4C6FFF",
