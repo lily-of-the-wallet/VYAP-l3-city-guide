@@ -45,6 +45,11 @@
         <option name="gradleJvm" value="#JAVA_HOME" />
       </GradleProjectSettings>
       <GradleProjectSettings>
+        <option name="externalProjectPath" value="$PROJECT_DIR$/context" />
+        <option name="gradleJvm" value="#JAVA_HOME" />
+        <option name="myGradleHome" value="" />
+      </GradleProjectSettings>
+      <GradleProjectSettings>
         <option name="externalProjectPath" value="$PROJECT_DIR$/node_modules/@expo/dom-webview/android" />
         <option name="gradleJvm" value="#JAVA_HOME" />
       </GradleProjectSettings>
